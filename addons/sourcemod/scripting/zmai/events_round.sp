@@ -25,10 +25,11 @@ public void E_RoundRestart_Post( any data )
     float delay = 6.0;
     switch ( g_iDifficulty )
     {
-        case DIFFICULTY_MED : delay += 8.0;
-        case DIFFICULTY_EASY : delay += 10.0;
+        case DIFFICULTY_MED : delay += 3.0;
+        case DIFFICULTY_EASY : delay += 6.0;
         case DIFFICULTY_SUPEREASY : delay += 14.0;
     }
+    
     
     g_flNextSpawn = g_flCurTime + delay;
     g_flNextTrap = g_flCurTime + delay;

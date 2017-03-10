@@ -33,8 +33,12 @@
 
 
 
-#define HULL_Z_MAX                          72.0
-#define HULL_Z_MAX_DUCKED                   60.0
+#define THINK_FREQ                  0.25
+
+
+
+#define HULL_Z_MAX                  72.0
+#define HULL_Z_MAX_DUCKED           60.0
 
 
 #define ROOMSIZE_MAX                2048.0
@@ -246,7 +250,7 @@ int g_nPopCount;
 int g_nResources;
 int g_nHumans;
 
-float g_flCurTime;
+float g_flCurTime; // Engine time cached.
 
 int g_iDifficulty;
 
@@ -254,6 +258,12 @@ float g_flNextSpawn;
 float g_flNextTrap;
 float g_flNextForceAct; // Used to track whether we should ignore difficulty max zombie pop.
 //float g_flNextPopCheck; // When do we check if our zombie pop is true?
+
+float g_flNextDifficultyHandle;
+float g_flNextZombieHandle;
+
+
+
 
 
 int g_iHurt;
@@ -373,6 +383,9 @@ public void OnPluginStart()
     g_ConVar_BotName.AddChangeHook( E_ConVarChange_BotName );
     
     
+    AutoExecConfig( true, "zmai" );
+    
+    
     
     // CMDS
     RegConsoleCmd( "sm_replaceai", Cmd_ReplaceAI );
@@ -430,10 +443,10 @@ public Action T_CreateBot( Handle hTimer )
 
 public void OnMapStart()
 {
+    // Round stuff.
     g_bRoundEnded = true;
     //g_flRoundStartTime = 0.0;
 
-    
     
     
     // Enable by default.
@@ -445,20 +458,32 @@ public void OnMapStart()
     g_flBaseZombieSpawnDistSq = DEF_BASE_SPAWN_DIST_SQ;
     
     
+    g_flNextZombieHandle = 0.0;
+    g_flNextDifficultyHandle = 0.0;
+    
+    g_flNextForceAct = 0.0;
+    g_flNextDistChange = 0.0;
+    g_flNextSpawn = 0.0;
+    g_flNextTrap = 0.0;
+    
     g_iBot = 0;
+    
+    
     
     
     ReadFiles();
     
     
-    
-    CreateTimer( 1.0, T_CreateBot, TIMER_FLAG_NO_MAPCHANGE );
-    
-    CreateTimer( 0.5, T_BotThink, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE );
-
-
     g_flZombieDeleteDistSq = g_flBaseZombieDeleteDistSq;
     g_flZombieSpawnDistSq = g_flBaseZombieSpawnDistSq;
+    
+    
+    if ( g_bEnabled )
+    {
+        CreateTimer( 1.0, T_CreateBot, TIMER_FLAG_NO_MAPCHANGE );
+        
+        CreateTimer( THINK_FREQ, T_BotThink, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE );
+    }
 }
 
 public void OnClientPutInServer( int client )
@@ -575,10 +600,10 @@ stock bool FindTrapType( int ent, any target[TRAP_SIZE] )
     
     
     decl String:desc[MAX_TRAP_DESC];
-    GetEntPropString( ent, Prop_Data, "m_szDescription", desc, sizeof( desc ) );
+    Zm_GetEntityTrapDescription( ent, desc, sizeof( desc ) );
     
     decl String:targetname[MAX_TARGETNAME];
-    GetEntPropString( ent, Prop_Data, "m_iName", targetname, sizeof( targetname ) );
+    GetEntityName( ent, targetname, sizeof( targetname ) );
     
     
     decl data[TRAPTYPE_SIZE];
@@ -935,8 +960,6 @@ stock void FindBot()
     }
 }
 
-
-
 stock bool TypeFitsFlags( int type, int flags )
 {
     return ( type != ZTYPE_INVALID && ( flags == 0 || (flags & (1 << type)) ) );
@@ -1043,6 +1066,11 @@ stock bool SpawnZombies( int ent, const any data[SPAWN_SIZE], float flDistMult )
 stock void HandleDifficulty()
 {
     // Figure out our difficulty.
+    
+    if ( g_flCurTime < g_flNextDifficultyHandle ) return;
+    
+    
+    
     float total;
     
     float wep_add;
@@ -1134,11 +1162,18 @@ stock void HandleDifficulty()
     {
         g_iDifficulty = DIFFICULTY_SUPEREASY;
     }
+    
+    
+    g_flNextDifficultyHandle = g_flCurTime + 5.0;
 }
 
 stock void HandleZombies()
 {
     // Move/delete zombies.
+    
+    if ( g_flCurTime < g_flNextZombieHandle ) return;
+    
+    
     int ent = -1;
     
     
@@ -1165,6 +1200,10 @@ stock void HandleZombies()
         
         GetEntityAbsOrigin( ent, vecPos );
         
+        // Lift it off the ground a bit for traces.
+        vecPos[2] += 2.0;
+        
+        
         client = ClosestPlayer( vecPos, flDist );
         
         if ( !client )
@@ -1177,15 +1216,18 @@ stock void HandleZombies()
 #endif
         
         // Too far away from any players, just delete him!
-        if ( flDist > g_flZombieDeleteDistSq )
+        if ( flDist > g_flZombieDeleteDistSq && !CanSeeAnyPlayerInDistSq( vecPos, flDist * flDist ) )
         {
             // Ignore "special" zombies with a name, made by the map.
-            GetEntPropString( ent, Prop_Data, "m_iName", szName, sizeof( szName ) );
+            GetEntityName( ent, szName, sizeof( szName ) );
             
             if ( szName[0] != '\0' && szName[0] != '_' && szName[1] != '_' )
             {
 #if defined DEBUG_HANDLEZOMBIES
-                PrintToServer( PREFIX..."Special zombie detected! Can't delete. (Name: %s)", szName );
+                char szFull[64];
+                GetEntityName( ent, szFull, sizeof( szFull ) );
+                
+                PrintToServer( PREFIX..."Special zombie detected! Can't delete. (Name: %s)", szFull );
 #endif
                 continue; 
             }
@@ -1230,6 +1272,9 @@ stock void HandleZombies()
             break;
         }
     }
+    
+    
+    g_flNextZombieHandle = g_flCurTime + 2.0;
 }
 
 stock bool ShouldSpawnZombies()
@@ -1310,7 +1355,7 @@ stock int GetTypePopCost( int type )
         PrintToServer( PREFIX..."AI had bugged popcount! Resetting back to %i!", realpop );
 #endif
 
-        Zm_SetPopCount( g_iBot, realpop );
+        Zm_SetClientPopCount( g_iBot, realpop );
     }
 }
 
@@ -1318,7 +1363,7 @@ stock int GetRealPopCount()
 {
     // This still doesn't return the correct popcount. Needs more testing...
     decl String:szClass[6];
-    decl pop;
+    int pop = 0;
     
     int ent = -1;
     while ( (ent = FindEntityByClassname( ent, "npc_*" )) != -1 )
@@ -1408,7 +1453,7 @@ stock void CheckZombieSpawns( int ignore = -1 )
         
         
         // We're still not active. Don't spawn anything.
-        if ( !Zm_IsEntActive( ent ) ) continue;
+        if ( !Zm_IsEntityActive( ent ) ) continue;
         
         
         CopyArray( data[SPAWN_POS], vecEntPos, 3 );
@@ -1515,13 +1560,13 @@ stock bool CanUseTrap( const any data[TRAP_SIZE] )
     decl ent;
     if ( (ent = EntRefToEntIndex( data[TRAP_ENTREF] )) < 1 ) return false;
     
-    if ( !Zm_IsEntActive( ent ) ) return false;
+    if ( !Zm_IsEntityActive( ent ) ) return false;
     
     if ( view_as<float>( data[TRAP_NEXTUSE] ) > g_flCurTime ) return false;
     
     if ( data[TRAP_FLAGS] & TRAPFLAG_ISWAITINGTRIGGER ) return false;
     
-    if ( GetCost( ent ) > g_nResources ) return false;
+    if ( Zm_GetEntityCost( ent ) > g_nResources ) return false;
     
     if ( data[TRAP_MIN_RES] > 0 && g_nResources < data[TRAP_MIN_RES] ) return false;
     if ( data[TRAP_MAX_RES] > 0 && g_nResources > data[TRAP_MAX_RES] ) return false;
@@ -1585,7 +1630,7 @@ stock void CheckTraps()
             }
         }
         
-        if ( data[TRAP_FLAGS] & TRAPFLAG_CANUSETRIGGER && GetTrapCost( ent ) <= g_nResources )
+        if ( data[TRAP_FLAGS] & TRAPFLAG_CANUSETRIGGER && Zm_GetEntityTrapCost( ent ) <= g_nResources )
         {
 #if defined DEBUG_TRAPS
             PrintToServer( PREFIX..."Creating a trigger! (%i)", ent );
@@ -1599,11 +1644,11 @@ stock void CheckTraps()
             
             TR_GetEndPosition( end, null );
             
-            CreateTrapTrigger( g_iBot, ent, GetCost( ent ), GetTrapCost( ent ), end );
+            CreateTrapTrigger( g_iBot, ent, Zm_GetEntityCost( ent ), Zm_GetEntityTrapCost( ent ), end );
             
             
             // Set it as killed.
-            if ( GetRemoveOnTrigger( ent ) )
+            if ( Zm_GetEntityRemoveOnTrigger( ent ) )
                 g_hTraps.Set( i, INVALID_ENT_REFERENCE, TRAP_ENTREF );
             
             g_hTraps.Set( i, data[TRAP_FLAGS] | TRAPFLAG_ISWAITINGTRIGGER, TRAP_FLAGS );
@@ -1619,7 +1664,7 @@ stock void UseTrap( int index, const any data[TRAP_SIZE], int ent )
     PrintToServer( PREFIX..."Activating trap! (%i)", ent );
 #endif
     
-    ActivateTrap( g_iBot, ent, GetCost( ent ) );
+    ActivateTrap( g_iBot, ent, Zm_GetEntityCost( ent ) );
 
     // Some wait time between using the same trap.
     
@@ -1650,20 +1695,24 @@ stock void UseTrap( int index, const any data[TRAP_SIZE], int ent )
     
     g_hTraps.Set( index, g_flCurTime + delay, TRAP_NEXTUSE );
     
+    
+    
     // Always delay the next trap. If the map logic disables other traps when using this trap, we will accidentally use them all... (aka zm_bastard elevator traps)
-    g_flNextTrap = g_flCurTime + delay;
+    float nextdelay = 2.0;
     
     switch ( g_iDifficulty )
     {
         case DIFFICULTY_EASY :
         {
-            g_flNextTrap += 2.0;
+            nextdelay += 3.0;
         }
         case DIFFICULTY_SUPEREASY :
         {
-            g_flNextTrap += 3.0;
+            nextdelay += 6.0;
         }
     }
+    
+    g_flNextTrap = g_flCurTime + nextdelay;
 }
 
 stock bool CountChances( const any data[TRAP_SIZE] )
@@ -1818,7 +1867,7 @@ stock void KillZombie( int target, int damage )
     SetEntProp( ent, Prop_Data, "m_nDamage", damage );
     
     static char szName[24];
-    GetEntPropString( target, Prop_Data, "m_iName", szName, sizeof( szName ) );
+    GetEntityName( target, szName, sizeof( szName ) );
     
     if ( szName[0] == '\0' )
     {
@@ -1965,21 +2014,6 @@ stock void DeleteZombies( int client )
     FakeClientCommand( client, "zm_deletezombies" );
 }
 
-stock int GetRemoveOnTrigger( int ent )
-{
-    return GetEntProp( ent, Prop_Data, "m_bRemoveOnTrigger" );
-}
-
-stock int GetCost( int ent )
-{
-    return GetEntProp( ent, Prop_Data, "m_iCost" );
-}
-
-stock int GetTrapCost( int ent )
-{
-    return GetEntProp( ent, Prop_Data, "m_iTrapCost" );
-}
-
 stock int GetZombieState( int ent )
 {
     return GetEntProp( ent, Prop_Data, "m_NPCState" );
@@ -2118,7 +2152,7 @@ stock bool CanSeeAnyPlayerInDistSq( const float mypos[3], float dist )
         if ( !IsClientInGame( i ) || !Zm_IsHumanAlive( i ) ) continue;
         
         
-        GetEntityOrigin( i, pos );
+        GetClientAbsOrigin( i, pos );
         
         if ( GetVectorDistance( mypos, pos, true ) <= dist && CanSee_WorldOnly( mypos, pos ) )
         {
@@ -2141,7 +2175,7 @@ stock float DistanceToClosestPlayerSq( const float mypos[3] )
         if ( GetClientTeam( i ) != TEAM_HUMAN ) continue;
         
         
-        GetEntityOrigin( i, vecPos );
+        GetClientAbsOrigin( i, vecPos );
         
         dist = GetVectorDistance( mypos, vecPos, true );
         

@@ -38,6 +38,11 @@ stock int GetEntityWaterLevel( int ent )
     return GetEntProp( ent, Prop_Data, "m_nWaterLevel" );
 }
 
+stock void GetEntityName( int ent, char[] sz, int len )
+{
+    GetEntPropString( ent, Prop_Data, "m_iName", sz, len );
+}
+
 stock float GetEntitySpeedSquared( int ent )
 {
     float vec[3];

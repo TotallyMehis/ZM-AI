@@ -4,6 +4,11 @@ public Action T_BotThink( Handle hTimer )
     PrintToServer( PREFIX..."BotThink()" );
 #endif
 
+    if ( !g_bEnabled )
+    {
+        return Plugin_Stop;
+    }
+
     // First check if the bot even exists.
     if ( !g_iBot )
     {
@@ -32,8 +37,8 @@ public Action T_BotThink( Handle hTimer )
     
     // We're fine, now cache some useful stuff.
     g_flCurTime = GetEngineTime();
-    g_nPopCount = Zm_GetPopCount( g_iBot );
-    g_nResources = Zm_GetResources( g_iBot );
+    g_nPopCount = Zm_GetClientPopCount( g_iBot );
+    g_nResources = Zm_GetClientResources( g_iBot );
     g_nHumans = GetHumanCount();
     
     

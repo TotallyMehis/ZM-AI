@@ -4,6 +4,9 @@
 #define _zm_stocks_included
 
 
+// To include whistler.
+//#define ZM2
+
 
 enum
 {
@@ -111,33 +114,53 @@ stock bool Zm_GetWeaponAmmoType( int ent, int &ammotype )
     return false;
 }
 
-stock int Zm_GetResources( int client )
+stock bool Zm_IsHumanAlive( int client )
+{
+    return ( GetClientTeam( client ) == TEAM_HUMAN && IsPlayerAlive( client ) );
+}
+
+stock int Zm_GetClientResources( int client )
 {
     return GetEntProp( client, Prop_Send, "m_iZombiePool" );
 }
 
-stock void Zm_SetResources( int client, int value )
+stock void Zm_SetClientResources( int client, int value )
 {
     SetEntProp( client, Prop_Send, "m_iZombiePool", value );
 }
 
-stock int Zm_GetPopCount( int client )
+stock int Zm_GetClientPopCount( int client )
 {
     return GetEntProp( client, Prop_Send, "m_iZombiePopCount" );
 }
 
-stock void Zm_SetPopCount( int client, int value )
+stock void Zm_SetClientPopCount( int client, int value )
 {
     SetEntProp( client, Prop_Send, "m_iZombiePopCount", value );
 }
 
+stock int Zm_GetEntityCost( int ent )
+{
+    return GetEntProp( ent, Prop_Data, "m_iCost" );
+}
+
+stock int Zm_GetEntityTrapCost( int ent )
+{
+    return GetEntProp( ent, Prop_Data, "m_iTrapCost" );
+}
+
+stock int Zm_GetEntityRemoveOnTrigger( int ent )
+{
+    return GetEntProp( ent, Prop_Data, "m_bRemoveOnTrigger" );
+}
+
 // Used for zombie spawn orbs, trap orbs and other zm specific ents.
-stock bool Zm_IsEntActive( int ent )
+stock bool Zm_IsEntityActive( int ent )
 {
     return view_as<bool>( GetEntProp( ent, Prop_Data, "m_bActive" ) );
 }
 
-stock bool Zm_IsHumanAlive( int client )
+stock void Zm_GetEntityTrapDescription( int ent, char[] sz, int len )
 {
-    return ( GetClientTeam( client ) == TEAM_HUMAN && IsPlayerAlive( client ) );
+    GetEntPropString( ent, Prop_Data, "m_szDescription", sz, len );
 }
