@@ -41,7 +41,10 @@ public Action Lstnr_RoundRestart( int client, const char[] command, int argc )
     if ( client == g_iBot ) return Plugin_Continue;
     
     
-    SwitchBotToZM( client );
+    if ( SwitchBotToZM( client ) )
+    {
+        return Plugin_Handled;
+    }
     
     return Plugin_Continue;
 }
