@@ -532,7 +532,7 @@ public void OnClientDisconnect( int client )
     else if (   !g_bRoundEnded
             &&  IsClientInGame( client )
             &&  GetClientTeam( client ) == TEAM_ZM
-            &&  g_iBot
+            &&  IsValidAI()
             &&  GetClientTeam( g_iBot ) != TEAM_ZM )
     {
         ChangeClientTeam_Bot( g_iBot, TEAM_ZM );
@@ -541,7 +541,7 @@ public void OnClientDisconnect( int client )
 
 stock void ChangeClientTeam_Bot( int bot, int team )
 {
-    ChangeClientTeam( bot, TEAM_SPEC );
+    ChangeClientTeam( bot, team );
     
     SetBotPhysicsFlags( bot );
 }
@@ -2230,4 +2230,75 @@ stock int GetAmmoTypeMaxCountTotal( int ammotype )
 stock int GetClientAmmo( int client, int ammotype )
 {
     return GetEntData( client, g_Offset_iAmmo + ( (ammotype + 1) * 4 ) );
+}
+
+stock bool SwitchBotToZM( int client )
+{
+    if ( g_bRoundEnded ) return false;
+    
+    
+    if ( GetClientTeam( client ) != TEAM_ZM ) return false;
+    
+    if ( !IsValidAI() )
+    {
+        return false;
+    }
+    
+    
+    ChangeClientTeam( client, TEAM_SPEC );
+    ChangeClientTeam_Bot( g_iBot, TEAM_ZM );
+}
+
+stock bool SwitchClientToZM( int client, bool bSilent = false )
+{
+    if ( g_bRoundEnded ) return false;
+    
+    
+    if ( !IsValidAI() )
+    {
+        if ( !bSilent )
+            ReplyToCommand( client, PREFIX..."The AI isn't in the game!" );
+        
+        return false;
+    }
+    
+    if ( GetClientTeam( g_iBot ) != TEAM_ZM )
+    {
+        if ( !bSilent )
+            ReplyToCommand( client, PREFIX..."The AI isn't the ZM right now!" );
+        
+        return false;
+    }
+    
+    if ( GetClientTeam( client ) == TEAM_HUMAN && _GetTeamClientCount( TEAM_HUMAN ) <= 1 )
+    {
+        if ( !bSilent )
+            ReplyToCommand( client, PREFIX..."You are the only survivor!" );
+        
+        return false;
+    }
+    
+    
+    ChangeClientTeam( client, TEAM_ZM );
+    ChangeClientTeam_Bot( g_iBot, TEAM_SPEC );
+    
+    return true;
+}
+
+stock bool IsValidAI()
+{
+    return ( g_iBot && IsClientInGame( g_iBot ) );
+}
+
+// Sourcemod's GetTeamClientCount doesn't seem to work.
+stock int _GetTeamClientCount( int team )
+{
+    int num = 0;
+    
+    for ( int i = 1; <= MaxClients; i++ )
+    {
+        if ( GetClientTeam( i ) == team ) ++num;
+    }
+    
+    return num;
 }
