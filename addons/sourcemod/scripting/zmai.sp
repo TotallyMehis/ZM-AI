@@ -298,6 +298,7 @@ ConVar g_ConVar_Cost_Immolator;
 // OUR CONVARS
 ConVar g_ConVar_InactDifChange;
 ConVar g_ConVar_BotName;
+ConVar g_ConVar_RoundRestart;
 
 
 
@@ -380,6 +381,7 @@ public void OnPluginStart()
     g_ConVar_InactDifChange = CreateConVar( "zmai_inactivitydifchangetime", "60", "How many seconds of inactivitity till the AI will ignore difficulty caps.", FCVAR_NOTIFY, true, 0.0 );
     
     g_ConVar_BotName = CreateConVar( "zmai_botname", DEF_AINAME, "Name of the AI.", FCVAR_NOTIFY );
+    g_ConVar_RoundRestart = CreateConVar( "zmai_overrideroundrestart", "1", "Do we switch if a real player attemps to restart the round as ZM.", FCVAR_NOTIFY, true, 0.0, true, 1.0 );
     g_ConVar_BotName.AddChangeHook( E_ConVarChange_BotName );
     
     
@@ -394,6 +396,8 @@ public void OnPluginStart()
     RegConsoleCmd( "sm_ai", Cmd_ReplaceAI );
     RegConsoleCmd( "sm_zm", Cmd_ReplaceAI_Silent );
     RegConsoleCmd( "sm_zombiemaster", Cmd_ReplaceAI_Silent );
+    
+    AddCommandListener( Lstnr_RoundRestart, "roundrestart" );
     
     
     // TIMERS
@@ -2247,6 +2251,8 @@ stock bool SwitchBotToZM( int client )
     
     ChangeClientTeam( client, TEAM_SPEC );
     ChangeClientTeam_Bot( g_iBot, TEAM_ZM );
+    
+    return true;
 }
 
 stock bool SwitchClientToZM( int client, bool bSilent = false )
@@ -2295,7 +2301,7 @@ stock int _GetTeamClientCount( int team )
 {
     int num = 0;
     
-    for ( int i = 1; <= MaxClients; i++ )
+    for ( int i = 1; i <= MaxClients; i++ )
     {
         if ( GetClientTeam( i ) == team ) ++num;
     }
