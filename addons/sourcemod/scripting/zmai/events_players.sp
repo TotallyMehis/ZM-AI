@@ -22,9 +22,13 @@ public void E_PlayerHurt( Event event, const char[] szEvent, bool bDontBroadcast
     int client = GetClientOfUserId( event.GetInt( "userid" ) );
     if ( !client ) return;
     
+#if !defined ZMR
     //event.GetInt( "attacker" );
     if ( event.GetBool( "zombie" ) )
     {
         g_flNextForceAct = g_flCurTime + g_ConVar_InactDifChange.FloatValue;
     }
+#else
+    g_flNextForceAct = g_flCurTime + g_ConVar_InactDifChange.FloatValue;
+#endif
 }

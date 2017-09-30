@@ -337,7 +337,45 @@ public void OnPluginStart()
         SetFailState( PREFIX..."Couldn't find iAmmo offset!" );
     }
     
+#if defined ZMR
+    // CONVARS
+    g_ConVar_ZombieMax = FindConVar( "zm_sv_zombiemax" );
+    if ( g_ConVar_ZombieMax == null ) SetFailState( PREFIX..."Couldn't find cvar handle for zm_zombiemax!" );
     
+    
+    // Cache popcost...
+    g_ConVar_ZombiePopCost_Shambler = FindConVar( "zm_sv_popcost_shambler" );
+    if ( g_ConVar_ZombiePopCost_Shambler == null ) SetFailState( PREFIX..."Couldn't find cvar handle for zm_popcost_shambler!" );
+    
+    g_ConVar_ZombiePopCost_Banshee = FindConVar( "zm_sv_popcost_banshee" );
+    if ( g_ConVar_ZombiePopCost_Banshee == null ) SetFailState( PREFIX..."Couldn't find cvar handle for zm_popcost_banshee!" );
+    
+    g_ConVar_ZombiePopCost_Hulk = FindConVar( "zm_sv_popcost_hulk" );
+    if ( g_ConVar_ZombiePopCost_Hulk == null ) SetFailState( PREFIX..."Couldn't find cvar handle for zm_popcost_hulk!" );
+    
+    g_ConVar_ZombiePopCost_Drifter = FindConVar( "zm_sv_popcost_drifter" );
+    if ( g_ConVar_ZombiePopCost_Drifter == null ) SetFailState( PREFIX..."Couldn't find cvar handle for zm_popcost_drifter!" );
+    
+    g_ConVar_ZombiePopCost_Immolator = FindConVar( "zm_sv_popcost_immolator" );
+    if ( g_ConVar_ZombiePopCost_Immolator == null ) SetFailState( PREFIX..."Couldn't find cvar handle for zm_popcost_immolator!" );
+    
+    
+    // Cache cost...
+    g_ConVar_Cost_Shambler = FindConVar( "zm_sv_cost_shambler" );
+    if ( g_ConVar_Cost_Shambler == null ) SetFailState( PREFIX..."Couldn't find cvar handle for zm_popcost_shambler!" );
+    
+    g_ConVar_Cost_Banshee = FindConVar( "zm_sv_cost_banshee" );
+    if ( g_ConVar_Cost_Banshee == null ) SetFailState( PREFIX..."Couldn't find cvar handle for zm_popcost_banshee!" );
+    
+    g_ConVar_Cost_Hulk = FindConVar( "zm_sv_cost_hulk" );
+    if ( g_ConVar_Cost_Hulk == null ) SetFailState( PREFIX..."Couldn't find cvar handle for zm_popcost_hulk!" );
+    
+    g_ConVar_Cost_Drifter = FindConVar( "zm_sv_cost_drifter" );
+    if ( g_ConVar_Cost_Drifter == null ) SetFailState( PREFIX..."Couldn't find cvar handle for zm_popcost_drifter!" );
+    
+    g_ConVar_Cost_Immolator = FindConVar( "zm_sv_cost_immolator" );
+    if ( g_ConVar_Cost_Immolator == null ) SetFailState( PREFIX..."Couldn't find cvar handle for zm_popcost_immolator!" );
+#else
     // CONVARS
     g_ConVar_ZombieMax = FindConVar( "zm_zombiemax" );
     if ( g_ConVar_ZombieMax == null ) SetFailState( PREFIX..."Couldn't find cvar handle for zm_zombiemax!" );
@@ -375,7 +413,7 @@ public void OnPluginStart()
     
     g_ConVar_Cost_Immolator = FindConVar( "zm_cost_immolator" );
     if ( g_ConVar_Cost_Immolator == null ) SetFailState( PREFIX..."Couldn't find cvar handle for zm_popcost_immolator!" );
-    
+#endif
     
     
     g_ConVar_InactDifChange = CreateConVar( "zmai_inactivitydifchangetime", "60", "How many seconds of inactivitity till the AI will ignore difficulty caps.", FCVAR_NOTIFY, true, 0.0 );
@@ -408,11 +446,17 @@ public void OnPluginStart()
     HookEvent( "player_spawn", E_PlayerSpawn );
     HookEvent( "player_hurt", E_PlayerHurt );
     
+#if defined ZMR
+    HookEvent( "round_restart_post", E_RoundRestart, EventHookMode_PostNoCopy );
+    HookEvent( "round_end_post", E_RoundVictory );
+#else
     HookEvent( "round_restart", E_RoundRestart, EventHookMode_PostNoCopy );
     HookEvent( "round_victory", E_RoundVictory );
+#endif
     
+#if !defined ZMR
     HookEvent( "zombie_spawn", E_ZombieSpawn );
-    
+#endif
     
     
     
@@ -519,8 +563,11 @@ public void Event_BotPutInServer_Post( int bot )
     if ( (bot = GetClientOfUserId( bot )) && bot == g_iBot )
     {
         // Set necessary props here.
+#if defined ZMR
+        SetClientInfo( bot, "zm_cl_participation", "0" );
+#else
         SetEntProp( bot, Prop_Send, "m_zmParticipation", 0 );
-        
+#endif
         
         SetBotPhysicsFlags( bot );
     }
@@ -546,8 +593,9 @@ public void OnClientDisconnect( int client )
 stock void ChangeClientTeam_Bot( int bot, int team )
 {
     ChangeClientTeam( bot, team );
-    
+#if !defined ZMR
     SetBotPhysicsFlags( bot );
+#endif
 }
 
 stock void SetBotPhysicsFlags( int bot )
@@ -971,7 +1019,7 @@ stock bool TypeFitsFlags( int type, int flags )
 
 stock bool SpawnZombies( int ent, const any data[SPAWN_SIZE], float flDistMult )
 {
-    int flags = GetEntProp( ent, Prop_Data, "m_iZombieFlags" );
+    int flags = Zm_GetEntityZombieFlags( ent );
     
     // Check all zombie types.
     int ztypes[NUM_ZTYPES];
@@ -983,7 +1031,7 @@ stock bool SpawnZombies( int ent, const any data[SPAWN_SIZE], float flDistMult )
     
     for ( int type = 0; type < NUM_ZTYPES; type++ )
     {
-        if (!TypeFitsFlags( type, ztypes[type] )
+        if (!TypeFitsFlags( type, flags )
         ||  !HasEnoughPoolToSpawnType( type )
         ||  !HasEnoughResToSpawnType( type )
         ||  GetZombieTypeNum( type ) >= GetMaxZombiesOfType( type ))
@@ -1061,8 +1109,15 @@ stock bool SpawnZombies( int ent, const any data[SPAWN_SIZE], float flDistMult )
         flags );
 #endif
     
+#if defined ZMR
+    FakeClientCommand( g_iBot, "zm_cmd_queue %i %i 1", ent, type );
+    
+    g_flLastSpawn = g_flCurTime;
+#else
     SetSelectedZombieSpawn( g_iBot, ent, flags );
+    
     FakeClientCommand( g_iBot, "summon %s %i", g_szZTypes[type], ent );
+#endif
     
     return true;
 }
@@ -1270,7 +1325,11 @@ stock void HandleZombies()
             //PrintToServer( PREFIX..."Class: %s (on fire: %i)", szClass, GetEntityFlags( ent ) & FL_ONFIRE ? 1 : 0 );
             
             UnselectAllZombies( g_iBot );
+#if defined ZMR
+            SelectZombie( g_iBot, ent, true );
+#else
             SelectZombiesInSphere( g_iBot, vecPos ); // 256 unit sphere.
+#endif
             MoveZombies( g_iBot, vecTargetPos );
             
             break;
@@ -1972,33 +2031,50 @@ stock void AddBot()
     // Has to have sv_cheats set to 1!
     int flags;
     
-    if ( (flags = GetCommandFlags( "bot_add" )) == INVALID_FCVAR_FLAGS )
+#if defined ZMR
+    char command[] = "bot";
+#else
+    char command[] = "bot_add";
+#endif
+
+    if ( (flags = GetCommandFlags( command )) == INVALID_FCVAR_FLAGS )
     {
         SetFailState( "Couldn't find command flags for command bot_add!" );
     }
     
     
-    if ( flags & FCVAR_CHEAT ) SetCommandFlags( "bot_add", flags & ~FCVAR_CHEAT );
+    if ( flags & FCVAR_CHEAT ) SetCommandFlags( command, flags & ~FCVAR_CHEAT );
     
     
-    ServerCommand( "bot_add" );
+    ServerCommand( command );
 }
 
-stock void SelectZombie( int client, int index )
+stock void SelectZombie( int client, int index, bool bSticky = false )
 {
+#if defined ZMR
+    FakeClientCommand( client, "zm_cmd_select %i %i", index, bSticky );
+#else
     // Doesn't work.
     FakeClientCommand( client, "conq_npc_select_index %i", index );
+#endif
 }
 
 stock void SelectZombiesInSphere( int client, const float vecPos[3] )
 {
+#if defined ZMR
+
+#else
     // This is the only thing that lets us select zombies. The bad thing is, it selects zombies in a 256-unit radius.
     // NOTE: Will use sticky. Have to unselect everything first.
     FakeClientCommand( client, "conq_npc_select_sphere %.0f %.0f %.0f", vecPos[0], vecPos[1], vecPos[2] );
+#endif
 }
 
 stock void UnselectAllZombies( int client )
 {
+#if defined ZMR
+    FakeClientCommand( client, "zm_cmd_unselectall" );
+#else
     // This command will first deselect all zombies and then attempt to select the zombies in the squad. If no squad exists, nothing else is done.
     
     // Can be added back in, since we're running the update.
@@ -2006,16 +2082,25 @@ stock void UnselectAllZombies( int client )
     //FakeClientCommand( client, "zm_gotosquad" );
     
     FakeClientCommand( client, "zm_altselect_cc" );
+#endif
 }
 
 stock void MoveZombies( int client, const float vecTarget[3] )
 {
+#if defined ZMR
+    FakeClientCommand( client, "zm_cmd_move %.1f %.1f %.1f", vecTarget[0], vecTarget[1], vecTarget[2] );
+#else 
     FakeClientCommand( client, "conq_npc_move_coords %.1f %.1f %.1f", vecTarget[0], vecTarget[1], vecTarget[2] );
+#endif
 }
 
 stock void DeleteZombies( int client )
 {
+#if defined ZMR
+    FakeClientCommand( client, "zm_cmd_delete" );
+#else
     FakeClientCommand( client, "zm_deletezombies" );
+#endif
 }
 
 stock int GetZombieState( int ent )
@@ -2034,9 +2119,13 @@ stock void CreateTrapTrigger( int client, int ent, int cost, int trapcost, float
     PrintToServer( "Created trap! (%i)", ent );
 #endif
     
+#if defined ZMR
+    FakeClientCommand( client, "zm_cmd_createtrigger %i %.1f %.1f %.1f", ent, vecPos[0], vecPos[1], vecPos[2] );
+#else
     SetSelectedTrap( client, ent, cost, trapcost );
     
     FakeClientCommand( client, "create_trap %.1f %.1f %.1f", vecPos[0], vecPos[1], vecPos[2] );
+#endif
 }
 
 stock void ActivateTrap( int client, int ent, int cost )
@@ -2045,9 +2134,13 @@ stock void ActivateTrap( int client, int ent, int cost )
     PrintToServer( "Activate trap! (%i)", ent );
 #endif
     
+#if defined ZMR
+    FakeClientCommand( client, "zm_cmd_trigger %i", ent );
+#else
     SetSelectedTrap( client, ent, cost );
     
     FakeClientCommand( client, "manipulate" );
+#endif
 }
 
 stock void SetSelectedZombieSpawn( int client, int ent, int flags )
@@ -2303,7 +2396,7 @@ stock int _GetTeamClientCount( int team )
     
     for ( int i = 1; i <= MaxClients; i++ )
     {
-        if ( GetClientTeam( i ) == team ) ++num;
+        if ( IsClientInGame( i ) && GetClientTeam( i ) == team ) ++num;
     }
     
     return num;

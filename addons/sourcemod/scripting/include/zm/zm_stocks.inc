@@ -7,6 +7,9 @@
 // To include whistler.
 //#define ZM2
 
+// For Reborn support.
+#define ZMR
+
 
 enum
 {
@@ -53,13 +56,21 @@ enum
 #endif
 
 
+#if defined ZMR
+#define AMMOTYPE_PISTOL     0
+#define AMMOTYPE_RIFLE      1
+#define AMMOTYPE_SHOTGUN    2
+#define AMMOTYPE_SMG        3
+#define AMMOTYPE_MOLOTOV    4
+#define AMMOTYPE_REVOLVER   5
+#else
 #define AMMOTYPE_PISTOL     2
 #define AMMOTYPE_SMG        3
 #define AMMOTYPE_RIFLE      4
 #define AMMOTYPE_SHOTGUN    6
 #define AMMOTYPE_MOLOTOV    11
 #define AMMOTYPE_REVOLVER   12
-
+#endif
 
 stock bool Zm_GetWeaponAmmoType( int ent, int &ammotype )
 {
@@ -121,17 +132,29 @@ stock bool Zm_IsHumanAlive( int client )
 
 stock int Zm_GetClientResources( int client )
 {
+#if defined ZMR
+    return GetEntProp( client, Prop_Send, "m_nResources" );
+#else
     return GetEntProp( client, Prop_Send, "m_iZombiePool" );
+#endif
 }
 
 stock void Zm_SetClientResources( int client, int value )
 {
+#if defined ZMR
+    SetEntProp( client, Prop_Send, "m_nResources", value );
+#else
     SetEntProp( client, Prop_Send, "m_iZombiePool", value );
+#endif
 }
 
 stock int Zm_GetClientPopCount( int client )
 {
+#if defined ZMR
+    return GameRules_GetProp( "m_nZombiePop" ); // Popcount is shared between players.
+#else
     return GetEntProp( client, Prop_Send, "m_iZombiePopCount" );
+#endif
 }
 
 stock void Zm_SetClientPopCount( int client, int value )
@@ -141,12 +164,20 @@ stock void Zm_SetClientPopCount( int client, int value )
 
 stock int Zm_GetEntityCost( int ent )
 {
+#if defined ZMR
+    return GetEntProp( ent, Prop_Data, "m_nCost" );
+#else
     return GetEntProp( ent, Prop_Data, "m_iCost" );
+#endif
 }
 
 stock int Zm_GetEntityTrapCost( int ent )
 {
+#if defined ZMR
+    return GetEntProp( ent, Prop_Data, "m_nTrapCost" );
+#else
     return GetEntProp( ent, Prop_Data, "m_iTrapCost" );
+#endif
 }
 
 stock int Zm_GetEntityRemoveOnTrigger( int ent )
@@ -162,5 +193,18 @@ stock bool Zm_IsEntityActive( int ent )
 
 stock void Zm_GetEntityTrapDescription( int ent, char[] sz, int len )
 {
+#if defined ZMR
+    GetEntPropString( ent, Prop_Data, "m_sDescription", sz, len );
+#else
     GetEntPropString( ent, Prop_Data, "m_szDescription", sz, len );
+#endif
+}
+
+stock int Zm_GetEntityZombieFlags( int ent )
+{
+#if defined ZMR
+    return GetEntProp( ent, Prop_Data, "m_fZombieFlags" );
+#else
+    return GetEntProp( ent, Prop_Data, "m_iZombieFlags" );
+#endif
 }
