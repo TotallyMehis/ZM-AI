@@ -202,6 +202,11 @@ enum
 #define DIFFICULTY_EASY             1
 #define DIFFICULTY_SUPEREASY        0
 
+// Based on max pop of 50.
+#define DIF_POPCAP_MED              0.8
+#define DIF_POPCAP_EASY             0.56
+#define DIF_POPCAP_SUPEREASY        0.4
+
 #define DIF_HARD                    500.0 // Approx. 10 humans with primary weapons (with ammo).
 #define DIF_MED                     250.0 // Approx. 5 humans with primary weapons (with ammo).
 #define DIF_EASY                    100.0 // Approx. 2 humans with primary weapons (with ammo).
@@ -434,6 +439,9 @@ public void OnPluginStart()
     RegConsoleCmd( "sm_ai", Cmd_ReplaceAI );
     RegConsoleCmd( "sm_zm", Cmd_ReplaceAI_Silent );
     RegConsoleCmd( "sm_zombiemaster", Cmd_ReplaceAI_Silent );
+    
+    RegConsoleCmd( "sm_debug_zmai", Cmd_Debug_AI );
+    
     
     AddCommandListener( Lstnr_RoundRestart, "roundrestart" );
     
@@ -1312,7 +1320,7 @@ stock void HandleZombies()
         
         // There are STILL some mistakes in this.
         // Sometimes the NPC can be idling and not moving while the player is right in front of it, etc.
-        if ( flDist > MIN_ZOMBIEMOVE_DIST_SQ && GetZombieState( ent ) == NPC_STATE_IDLE && !IsZombieMoving( ent ) )
+        if ( flDist > MIN_ZOMBIEMOVE_DIST_SQ && GetZombieState( ent ) <= NPC_STATE_IDLE && !IsZombieMoving( ent ) )
         {
 #if defined DEBUG_HANDLEZOMBIES
             PrintToServer( PREFIX..."Moving %i towards player %i!", ent, client );
@@ -1342,7 +1350,8 @@ stock void HandleZombies()
 
 stock bool ShouldSpawnZombies()
 {
-    if ( g_nPopCount >= g_ConVar_ZombieMax.IntValue ) return false;
+    // Is our popc count over the abs max.
+    if ( g_nPopCount >= GetMaxPopCount( false ) ) return false;
     
     if ( g_flNextSpawn >= g_flCurTime ) return false;
     
@@ -1360,14 +1369,28 @@ stock bool ShouldSpawnZombies()
         return true;
     }
     
-    switch ( g_iDifficulty )
-    {
-        case DIFFICULTY_MED : if ( g_nPopCount > 40 ) return false;
-        case DIFFICULTY_EASY : if ( g_nPopCount > 28 ) return false;
-        case DIFFICULTY_SUPEREASY : if ( g_nPopCount > 20 ) return false;
-    }
+    if ( g_nPopCount >= GetMaxPopCount( true ) )
+        return false;
     
     return true;
+}
+
+stock int GetMaxPopCount( bool bDifficulty = true )
+{
+    int max = g_ConVar_ZombieMax.IntValue;
+    
+    if ( bDifficulty )
+    {
+        // Not fall-through.
+        switch ( g_iDifficulty )
+        {
+            case DIFFICULTY_MED :       return RoundFloat( max * DIF_POPCAP_MED );
+            case DIFFICULTY_EASY :      return RoundFloat( max * DIF_POPCAP_EASY );
+            case DIFFICULTY_SUPEREASY : return RoundFloat( max * DIF_POPCAP_SUPEREASY );
+        }
+    }
+    
+    return max;
 }
 
 stock bool HasEnoughResToSpawnType( int type )
