@@ -333,6 +333,27 @@ public Plugin myinfo =
     version = PLUGIN_VERSION
 };
 
+public APLRes AskPluginLoad2( Handle hPlugin, bool late, char[] szError, int error_len )
+{
+    char szFolder[32];
+    GetGameFolderName( szFolder, sizeof( szFolder ) );
+    
+#if defined ZMR
+#define COMP_GAME       "Zombie Master: Reborn"
+    if ( !StrEqual( szFolder, "zombie_master_reborn", false ) )
+#else
+#define COMP_GAME       "Zombie Master 1.2.1"
+    if ( !StrEqual( szFolder, "zombie_master", false ) )
+#endif
+    {
+        FormatEx( szError, error_len, "This plugin is compiled for "...COMP_GAME..."! Please use the correct version." );
+        
+        return APLRes_Failure;
+    }
+    
+    return APLRes_Success;
+}
+
 public void OnPluginStart()
 {
     g_Offset_iAmmo = FindSendPropInfo( "CBasePlayer", "m_iAmmo" );
