@@ -12,6 +12,7 @@
 
 
 //#define DEBUG
+//#define DEBUG_AISWITCH
 //#define DEBUG_SPAWNROOMSIZE
 //#define DEBUG_AISPAWNING
 //#define DEBUG_TRAPS
@@ -609,13 +610,13 @@ public void OnClientDisconnect( int client )
         g_iBot = 0;
     }
     // Save the round with the bot if an actual master quits.
-    else if (   !g_bRoundEnded
-            &&  IsClientInGame( client )
+    else if (   IsClientInGame( client )
+            &&  !IsFakeClient( client )
             &&  GetClientTeam( client ) == TEAM_ZM
             &&  IsValidAI()
             &&  GetClientTeam( g_iBot ) != TEAM_ZM )
     {
-        ChangeClientTeam_Bot( g_iBot, TEAM_ZM );
+        SwitchBotToZM( client );
     }
 }
 
@@ -2389,6 +2390,10 @@ stock bool SwitchBotToZM( int client )
     ChangeClientTeam( client, TEAM_SPEC );
     ChangeClientTeam_Bot( g_iBot, TEAM_ZM );
     
+#if defined DEBUG_AISWITCH
+    PrintToServer( PREFIX..."Replacing player %N with bot!", client );
+#endif
+    
     return true;
 }
 
@@ -2424,6 +2429,10 @@ stock bool SwitchClientToZM( int client, bool bSilent = false )
     
     ChangeClientTeam( client, TEAM_ZM );
     ChangeClientTeam_Bot( g_iBot, TEAM_SPEC );
+    
+#if defined DEBUG_AISWITCH
+    PrintToServer( PREFIX..."Replacing AI with %N!", client );
+#endif
     
     return true;
 }
