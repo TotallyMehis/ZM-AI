@@ -712,7 +712,10 @@ stock bool FindTrapType( int ent, any target[TRAP_SIZE] )
         {
             match = StrEqual( targetname, findtargetname, false );
         }
-        else if ( reg != null )
+        // The description has to have something in it.
+        // Regex.Match does not seem to support empty strings.
+        // https://github.com/alliedmodders/sourcemod/blob/e2eac382c056bc1d8ee435421afb34c28e4c0988/extensions/regex/extension.cpp#L141
+        else if ( reg != null && desc[0] != 0 )
         {
             int matches = reg.Match( desc );
             
