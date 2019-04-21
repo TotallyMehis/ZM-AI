@@ -2387,8 +2387,9 @@ stock bool SwitchBotToZM( int client )
     }
     
     
-    ChangeClientTeam( client, TEAM_SPEC );
+    // Change bot team first to prevent round restart.
     ChangeClientTeam_Bot( g_iBot, TEAM_ZM );
+    ChangeClientTeam( client, TEAM_SPEC );
     
 #if defined DEBUG_AISWITCH
     PrintToServer( PREFIX..."Replacing player %N with bot!", client );
