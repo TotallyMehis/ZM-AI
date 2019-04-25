@@ -1334,7 +1334,7 @@ stock void HandleZombies()
             continue;
         }
         
-#if defined DEBUG_HANDLEZOMBIES
+#if defined DEBUG_HANDLEZOMBIES && !defined ZMR
         PrintToServer( PREFIX..."Zombie state: %i | Moving: %i",
             GetZombieState( ent ),
             IsZombieMoving( ent ) );
@@ -1345,7 +1345,7 @@ stock void HandleZombies()
         
         // There are STILL some mistakes in this.
         // Sometimes the NPC can be idling and not moving while the player is right in front of it, etc.
-        if ( flDist > MIN_ZOMBIEMOVE_DIST_SQ && GetZombieState( ent ) <= NPC_STATE_IDLE && !IsZombieMoving( ent ) )
+        if ( flDist > MIN_ZOMBIEMOVE_DIST_SQ && ShouldMoveZombie( ent ) )
         {
 #if defined DEBUG_HANDLEZOMBIES
             PrintToServer( PREFIX..."Moving %i towards player %i!", ent, client );
@@ -2068,6 +2068,20 @@ stock int GetMaxZombiesOfType( int type )
     return g_ConVar_ZombieMax.IntValue;
 }
 
+stock bool ShouldMoveZombie( int ent )
+{
+#if defined ZMR
+    // We have no way of knowing the zombie's state,
+    // so just use velocity.
+    decl Float:vel[3];
+    GetEntPropVector( ent, Prop_Data, "m_vecVelocity", vel );
+    
+    return GetVectorLength( vel, true ) < 1.0;
+#else
+    return GetZombieState( ent ) <= NPC_STATE_IDLE && !IsZombieMoving( ent );
+#endif
+}
+
 stock void AddBot()
 {
     if ( !g_bEnabled )
@@ -2153,12 +2167,20 @@ stock void DeleteZombies( int client )
 
 stock int GetZombieState( int ent )
 {
+#if defined ZMR
+    return 0;
+#else
     return GetEntProp( ent, Prop_Data, "m_NPCState" );
+#endif
 }
 
 stock bool IsZombieMoving( int ent )
 {
+#if defined ZMR
+    return false;
+#else
     return view_as<bool>( GetEntProp( ent, Prop_Data, "m_bIsMoving" ) );
+#endif
 }
 
 stock void CreateTrapTrigger( int client, int ent, int cost, int trapcost, float vecPos[3] )
