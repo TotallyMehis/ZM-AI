@@ -341,7 +341,7 @@ public APLRes AskPluginLoad2( Handle hPlugin, bool late, char[] szError, int err
     
 #if defined ZMR
 #define COMP_GAME       "Zombie Master: Reborn"
-    if ( !StrEqual( szFolder, "zombie_master_reborn", false ) )
+    if ( !StrEqual( szFolder, "zombie_master_reborn", false ) && !StrEqual( szFolder, "zmr", false ) )
 #else
 #define COMP_GAME       "Zombie Master 1.2.1"
     if ( !StrEqual( szFolder, "zombie_master", false ) )
