@@ -30,7 +30,7 @@
 
 #define DEF_AINAME                  "ZM AI"
 
-#define PLUGIN_VERSION              "0.96"
+#define PLUGIN_VERSION              "0.97"
 
 
 
