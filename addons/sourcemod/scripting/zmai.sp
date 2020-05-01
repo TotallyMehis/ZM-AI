@@ -1135,7 +1135,6 @@ stock bool SpawnZombies( int ent, const any data[SPAWN_SIZE], float flDistMult )
     {
         case ROOMSIZE_SMALL :   flAdd *= 2.0;
         case ROOMSIZE_MEDIUM :  flAdd *= 1.4;
-        case ROOMSIZE_BIG :     flAdd *= 1.2;
     }
     
     
