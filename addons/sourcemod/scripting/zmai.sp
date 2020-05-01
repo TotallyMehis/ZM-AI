@@ -305,6 +305,7 @@ ConVar g_ConVar_Cost_Immolator;
 ConVar g_ConVar_InactDifChange;
 ConVar g_ConVar_BotName;
 ConVar g_ConVar_RoundRestart;
+ConVar g_ConVar_AggressionModifier;
 
 
 
@@ -448,6 +449,8 @@ public void OnPluginStart()
     g_ConVar_BotName = CreateConVar( "zmai_botname", DEF_AINAME, "Name of the AI.", FCVAR_NOTIFY );
     g_ConVar_RoundRestart = CreateConVar( "zmai_overrideroundrestart", "1", "Do we switch if a real player attemps to restart the round as ZM.", FCVAR_NOTIFY, true, 0.0, true, 1.0 );
     g_ConVar_BotName.AddChangeHook( E_ConVarChange_BotName );
+
+    g_ConVar_AggressionModifier = CreateConVar( "zmai_aggressionmodifier", "1", "How aggressive the AI will be.", FCVAR_NOTIFY, true, 0.0 );
     
     
     AutoExecConfig( true, "zmai" );
@@ -1119,6 +1122,13 @@ stock bool SpawnZombies( int ent, const any data[SPAWN_SIZE], float flDistMult )
     
     // Multiply by type.
     flAdd *= g_flSpawnTimeMultiplier[type];
+
+    // Multiply by aggression as well.
+    float aggresion = g_ConVar_AggressionModifier.FloatValue;
+    if ( aggresion <= 0.0 )
+        aggresion = 0.01;
+
+    flAdd *= (1 / aggresion);
     
     // Multiply by room size.
     switch ( data[SPAWN_ROOMSIZE] )
@@ -2021,51 +2031,59 @@ stock int GetZombieTypeNum( int type )
 
 stock int GetMaxZombiesOfType( int type )
 {
+    int max = g_ConVar_ZombieMax.IntValue;
+    int value = max;
+
     switch ( g_iDifficulty )
     {
         case DIFFICULTY_HARD :
         {
             switch ( type )
             {
-                case ZTYPE_BANSHEE : return 7;
-                case ZTYPE_HULK : return 8;
-                case ZTYPE_DRIFTER : return 16;
-                case ZTYPE_IMMOLATOR : return 6;
+                case ZTYPE_BANSHEE : value = 7;
+                case ZTYPE_HULK : value = 8;
+                case ZTYPE_DRIFTER : value = 16;
+                case ZTYPE_IMMOLATOR : value = 6;
             }
         }
         case DIFFICULTY_MED :
         {
             switch ( type )
             {
-                case ZTYPE_BANSHEE : return 5;
-                case ZTYPE_HULK : return 4;
-                case ZTYPE_DRIFTER : return 10;
-                case ZTYPE_IMMOLATOR : return 3;
+                case ZTYPE_BANSHEE : value = 5;
+                case ZTYPE_HULK : value = 4;
+                case ZTYPE_DRIFTER : value = 10;
+                case ZTYPE_IMMOLATOR : value = 3;
             }
         }
         case DIFFICULTY_EASY :
         {
             switch ( type )
             {
-                case ZTYPE_BANSHEE : return 3;
-                case ZTYPE_HULK : return 2;
-                case ZTYPE_DRIFTER : return 7;
-                case ZTYPE_IMMOLATOR : return 2;
+                case ZTYPE_BANSHEE : value = 3;
+                case ZTYPE_HULK : value = 2;
+                case ZTYPE_DRIFTER : value = 7;
+                case ZTYPE_IMMOLATOR : value = 2;
             }
         }
         case DIFFICULTY_SUPEREASY :
         {
             switch ( type )
             {
-                case ZTYPE_BANSHEE : return 2;
-                case ZTYPE_HULK : return 2;
-                case ZTYPE_DRIFTER : return 5;
-                case ZTYPE_IMMOLATOR : return 1;
+                case ZTYPE_BANSHEE : value = 2;
+                case ZTYPE_HULK : value = 2;
+                case ZTYPE_DRIFTER : value = 5;
+                case ZTYPE_IMMOLATOR : value = 1;
             }
         }
     }
+
+
+    int out = RoundFloat( value * g_ConVar_AggressionModifier.FloatValue );
+    if ( out > max )
+        out = max;
     
-    return g_ConVar_ZombieMax.IntValue;
+    return out;
 }
 
 stock bool ShouldMoveZombie( int ent )
