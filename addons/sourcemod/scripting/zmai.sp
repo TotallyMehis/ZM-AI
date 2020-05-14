@@ -1124,11 +1124,7 @@ stock bool SpawnZombies( int ent, const any data[SPAWN_SIZE], float flDistMult )
     flAdd *= g_flSpawnTimeMultiplier[type];
 
     // Multiply by aggression as well.
-    float aggression = g_ConVar_AggressionModifier.FloatValue;
-    if ( aggression <= 0.0 )
-        aggression = 0.01;
-
-    flAdd *= (1 / aggression);
+    flAdd *= (1 / GetAggressionMultiplier());
     
     // Multiply by room size.
     switch ( data[SPAWN_ROOMSIZE] )
@@ -1833,11 +1829,7 @@ stock void UseTrap( int index, const any data[TRAP_SIZE], int ent )
     }
 
     // Multiply by aggression as well.
-    float aggression = g_ConVar_AggressionModifier.FloatValue;
-    if ( aggression <= 0.0 )
-        aggression = 0.01;
-
-    nextdelay *= (1 / aggression);
+    nextdelay *= (1 / GetAggressionMultiplier());
     
     g_flNextTrap = g_flCurTime + nextdelay;
 }
@@ -2085,7 +2077,7 @@ stock int GetMaxZombiesOfType( int type )
     }
 
 
-    int out = RoundFloat( value * g_ConVar_AggressionModifier.FloatValue );
+    int out = RoundFloat( value * GetAggressionMultiplier() );
     if ( out > max )
         out = max;
     
@@ -2503,4 +2495,13 @@ stock int _GetTeamClientCount( int team )
     }
     
     return num;
+}
+
+stock float GetAggressionMultiplier()
+{
+    float val = g_ConVar_AggressionModifier.FloatValue;
+    if ( val < 0.01 )
+        val = 0.01;
+
+    return val;
 }
