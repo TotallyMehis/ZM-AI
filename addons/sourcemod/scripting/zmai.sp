@@ -2027,9 +2027,19 @@ stock int GetZombieTypeNum( int type )
     return num;
 }
 
+// How many zombies of this type we can actually have.
+stock int GetRealMaxZombiesOfType( int type )
+{
+    int popcost = GetTypePopCost( type );
+    int maxpop = g_ConVar_ZombieMax.IntValue;
+
+    return RoundToFloor( maxpop / float( popcost ) );
+}
+
+// Take into account difficulty, etc.
 stock int GetMaxZombiesOfType( int type )
 {
-    int max = g_ConVar_ZombieMax.IntValue;
+    int max = GetRealMaxZombiesOfType( type );
     int value = max;
 
     switch ( g_iDifficulty )
