@@ -22,18 +22,27 @@ public void E_RoundRestart_Post( any data )
     
     // Give the players some time at the start.
 
-    float delay = 6.0;
+    float adddelay = 6.0;
     switch ( g_iDifficulty )
     {
-        case DIFFICULTY_MED : delay += 3.0;
-        case DIFFICULTY_EASY : delay += 6.0;
-        case DIFFICULTY_SUPEREASY : delay += 14.0;
+        case DIFFICULTY_MED : adddelay += 3.0;
+        case DIFFICULTY_EASY : adddelay += 6.0;
+        case DIFFICULTY_SUPEREASY : adddelay += 14.0;
     }
     
+    float spawndelay = adddelay;
+    float trapdelay = adddelay;
+
+    // Take into account aggression.
+    float aggression = GetAggressionMultiplier();
+    spawndelay *= (1 / aggression);
+    trapdelay *= (1 / aggression);
     
-    g_flNextSpawn = g_flCurTime + delay;
-    g_flNextTrap = g_flCurTime + delay;
-    
+    g_flNextSpawn = g_flCurTime + spawndelay;
+    g_flNextTrap = g_flCurTime + trapdelay;
+
+
+    // Find spawns/traps again
     FindEnts();
 }
 
