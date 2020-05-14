@@ -1124,11 +1124,11 @@ stock bool SpawnZombies( int ent, const any data[SPAWN_SIZE], float flDistMult )
     flAdd *= g_flSpawnTimeMultiplier[type];
 
     // Multiply by aggression as well.
-    float aggresion = g_ConVar_AggressionModifier.FloatValue;
-    if ( aggresion <= 0.0 )
-        aggresion = 0.01;
+    float aggression = g_ConVar_AggressionModifier.FloatValue;
+    if ( aggression <= 0.0 )
+        aggression = 0.01;
 
-    flAdd *= (1 / aggresion);
+    flAdd *= (1 / aggression);
     
     // Multiply by room size.
     switch ( data[SPAWN_ROOMSIZE] )
