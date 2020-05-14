@@ -1831,6 +1831,13 @@ stock void UseTrap( int index, const any data[TRAP_SIZE], int ent )
             nextdelay += 6.0;
         }
     }
+
+    // Multiply by aggression as well.
+    float aggression = g_ConVar_AggressionModifier.FloatValue;
+    if ( aggression <= 0.0 )
+        aggression = 0.01;
+
+    nextdelay *= (1 / aggression);
     
     g_flNextTrap = g_flCurTime + nextdelay;
 }
